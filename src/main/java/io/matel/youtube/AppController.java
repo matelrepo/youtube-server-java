@@ -1,22 +1,16 @@
 package io.matel.youtube;
 
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
-import com.google.api.services.youtube.model.Activity;
 import com.google.api.services.youtube.model.ActivityListResponse;
 import com.google.api.services.youtube.model.Video;
 import com.google.api.services.youtube.model.VideoListResponse;
 import io.matel.youtube.domain.ActivityTrans;
 import io.matel.youtube.domain.StatisticsMaster;
-import io.matel.youtube.domain.VideoMaster;
+import io.matel.youtube.domain.VideoDetailsMaster;
+import io.matel.youtube.repository.ActivityRepository;
+import io.matel.youtube.repository.VideoDetailsRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -25,24 +19,38 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 @Component
-public class AppController implements CommandLineRunner {
+public class AppController {
+
+    private final int NUM_ITERATIONS_PAGES_HISTO = 3;
 
     @Value("${api.key1}")
     private String apiKey;
 
-    private YouTube youtube;
+    private YouTube youTube;
+    private YouTube.Activities.List listActivitiesRequest;
+    private ActivityListResponse listResponse;
+    private int trailingCheckAlreadyExists =0;
 
-    public  final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+    public void setYouTube(YouTube youTube){
+        this.youTube = youTube;
+    }
 
-    public  final JsonFactory JSON_FACTORY = new JacksonFactory();
+    @Autowired
+    VideoDetailsRepository videoDetailsRepository;
 
-    public String getVideoDetails(String videoId) throws IOException {
-            YouTube.Videos.List listVideosRequest = youtube.videos().list("statistics, contentDetails, snippet, recordingDetails");
+    @Autowired
+    ActivityRepository activityRepository;
+
+    public void getVideoDetails(String videoId) throws IOException {
+        if(videoDetailsRepository.existsVideoDetailsMasterByVideoId(videoId)){
+            System.out.println("Video details " + videoId + " already acquired");
+        }else {
+            YouTube.Videos.List listVideosRequest = youTube.videos().list("statistics, contentDetails, snippet, recordingDetails");
             listVideosRequest.setId(videoId); // add list of video IDs here
             listVideosRequest.setKey(this.apiKey);
 
-            listVideosRequest.setFields("items(contentDetails(duration), "+
-            "id, snippet(channelId, channelTitle, description, title, publishedAt, tags, thumbnails), statistics)");
+            listVideosRequest.setFields("items(contentDetails(duration), " +
+                    "id, snippet(channelId, channelTitle, description, title, publishedAt, tags, thumbnails), statistics)");
 
 
             VideoListResponse listResponse = listVideosRequest.execute();
@@ -53,62 +61,82 @@ public class AppController implements CommandLineRunner {
                     video.getStatistics().getDislikeCount(), video.getStatistics().getFavoriteCount(),
                     video.getStatistics().getLikeCount(), video.getStatistics().getViewCount());
 
-            VideoMaster videoMaster = new VideoMaster(video.getId(), video.getSnippet().getChannelId(),
+            VideoDetailsMaster videoDetailsMaster = new VideoDetailsMaster(video.getId(), video.getSnippet().getChannelId(),
                     video.getSnippet().getChannelTitle(), video.getContentDetails().getDuration(),
                     video.getSnippet().getDescription(), video.getSnippet().getTitle(),
-                    null,
+                    video.getSnippet().getTags(),
                     ZonedDateTime.ofInstant(Instant.ofEpochMilli(video.getSnippet().getPublishedAt().getValue()), ZoneId.of("Asia/Bangkok")), statistics, null);
 
-            System.out.println(videoMaster.toString());
-
-        return null;
+            videoDetailsRepository.save(videoDetailsMaster);
+            System.out.println(videoDetailsMaster.toString());
+        }
     }
 
-    public String getActivityByChannelId(String channelId) throws IOException {
-            YouTube.Activities.List listActivitiesRequest = youtube.activities().list("contentDetails, snippet, id");
+    public void getActivityByChannelId(String channelId) throws IOException {
+        listActivitiesRequest = youTube.activities().list("contentDetails, snippet, id");
         listActivitiesRequest.setChannelId(channelId); // add list of video IDs here
         listActivitiesRequest.setKey(this.apiKey);
 
-        listActivitiesRequest.setFields("items(contentDetails(upload(videoId))," +
+        listActivitiesRequest.setFields("nextPageToken, items(contentDetails(upload(videoId))," +
                         "snippet(type,publishedAt,title,description,thumbnails(medium(url))))");
 
 
-            ActivityListResponse listResponse = listActivitiesRequest.execute();
-            listResponse.getItems().forEach(activity ->{
-                    if(activity.getSnippet().getType().equals("upload")){
-                        ActivityTrans activityTrans = new ActivityTrans(activity.getContentDetails().getUpload().getVideoId(),
-                                ZonedDateTime.ofInstant(Instant.ofEpochMilli(activity.getSnippet().getPublishedAt().getValue()), ZoneId.of("Asia/Bangkok")));
+//            ActivityListResponse listResponse = listActivitiesRequest.execute();
+//            goThroughActivities(listResponse);
+//            System.out.println(channelId);
+//            System.out.println(listResponse.getNextPageToken());
+//        listActivitiesRequest.setPageToken(listResponse.getNextPageToken());
 
-                        System.out.println(activityTrans.toString());
-                        try {
-                            this.getVideoDetails(activityTrans.getVideoId());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+        boolean validRequest = true;
+        boolean skipFirstActivityPageForTesting = false;
 
+        for (int i = 0; i < NUM_ITERATIONS_PAGES_HISTO; i++) {
+            listResponse = listActivitiesRequest.execute();
+            if (validRequest && !skipFirstActivityPageForTesting) {
+                validRequest = goThroughActivities(listResponse);
+                System.out.println("First page results acquired - next token >> " + listResponse.getNextPageToken());
+            }
+            if(skipFirstActivityPageForTesting)
+                listActivitiesRequest.setPageToken(listResponse.getNextPageToken());
 
-                    }
-            });
-        return null;
-    }
-
-    @Override
-    public void run(String... args) throws Exception {
-        try {
-            youtube = new YouTube.Builder(HTTP_TRANSPORT, JSON_FACTORY, new HttpRequestInitializer() {
-                @Override
-                public void initialize(HttpRequest request) throws IOException {
-                }
-            }).setApplicationName("youtube").build();
-
-//            getVideoDetails("nABiSKQuMvQ");
-            getActivityByChannelId("UCVHFbqXqoYvEWM1Ddxl0QDg");
-
-        } catch (GoogleJsonResponseException e) {
-            System.err.println("There was a service error: " + e.getDetails().getCode() + " : "
-                    + e.getDetails().getMessage());
-        } catch (IOException e) {
-            System.err.println("There was an IO error: " + e.getCause() + " : " + e.getMessage());
+            skipFirstActivityPageForTesting = false;
         }
+
     }
+
+    private boolean goThroughActivities(ActivityListResponse listResponse){
+
+        for(int j=0; j < listResponse.getItems().size(); j++){
+            if(listResponse.getItems().get(j).getSnippet().getType().equals("upload")){
+                ActivityTrans activityTrans = new ActivityTrans(listResponse.getItems().get(j).getContentDetails().getUpload().getVideoId(),
+                        ZonedDateTime.ofInstant(Instant.ofEpochMilli(listResponse.getItems().get(j).getSnippet().getPublishedAt().getValue()), ZoneId.of("Asia/Bangkok")));
+
+
+
+                if(activityRepository.existsActivityTransByVideoId(activityTrans.getVideoId())){
+                        trailingCheckAlreadyExists++;       // bug that two consecutive activities were received but the queue of new videos wasn't over
+                }else {
+                    trailingCheckAlreadyExists = 0;
+                    System.out.println(activityTrans.toString());
+                    activityRepository.save(activityTrans);
+                    try {
+                        this.getVideoDetails(activityTrans.getVideoId());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                if(trailingCheckAlreadyExists>2){
+                    System.out.println("Activity item " + activityTrans.getVideoId() + " already acquired");
+                    System.out.println("Terminating the query");
+                    return false;
+                }
+
+            }
+        }
+
+        listActivitiesRequest.setPageToken(listResponse.getNextPageToken());
+        return true;
+    }
+
 }

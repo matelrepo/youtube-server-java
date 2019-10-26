@@ -1,12 +1,19 @@
 package io.matel.youtube.domain;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import java.math.BigInteger;
+import java.time.OffsetDateTime;
 
 @Embeddable
 public class StatisticsMaster {
+
+    public StatisticsMaster(){};
 
     public StatisticsMaster(BigInteger commentCount, BigInteger disLikeCount, BigInteger favoriteCount, BigInteger likeCount, BigInteger viewCount) {
         this.commentCount = commentCount;

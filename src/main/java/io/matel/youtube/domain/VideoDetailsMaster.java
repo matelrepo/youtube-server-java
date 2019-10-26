@@ -3,18 +3,19 @@ package io.matel.youtube.domain;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 @Entity
-public class VideoMaster {
+public class VideoDetailsMaster {
 
-    public VideoMaster(String videoId, String channelId, String channelTitle, String duration, String videoDescription,
-                       String videoTitle, String tagsList, ZonedDateTime publishedAt,
-                       StatisticsMaster statistics, String thumbnailsList) {
+    public VideoDetailsMaster(){};
+
+    public VideoDetailsMaster(String videoId, String channelId, String channelTitle, String duration, String videoDescription,
+                              String videoTitle, List<String> tagsList, ZonedDateTime publishedAt,
+                              StatisticsMaster statistics, String thumbnailsList) {
         this.videoId = videoId;
         this.channelId = channelId;
         this.channelTitle = channelTitle;
@@ -22,6 +23,7 @@ public class VideoMaster {
         this.videoDescription = videoDescription;
         this.videoTitle = videoTitle;
         this.tagsList = tagsList;
+        this.tags = String.join(",", tagsList);
         this.publishedAt = publishedAt;
         this.statistics = statistics;
         this.thumbnailsList = thumbnailsList;
@@ -36,12 +38,17 @@ public class VideoMaster {
     @Column(columnDefinition = "TEXT")
     private String videoDescription;
     private String videoTitle;
-    private String tagsList;
+
+    @Transient
+    private List<String> tagsList;
+
+    @Column(columnDefinition= "TEXT")
+    private String tags;
 
     private ZonedDateTime publishedAt;
 
     @CreationTimestamp
-    @Column(nullable = false, columnDefinition= "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, updatable = false, columnDefinition= "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime creation;
 
     @UpdateTimestamp
@@ -99,14 +106,6 @@ public class VideoMaster {
         this.videoTitle = videoTitle;
     }
 
-    public String getTagsList() {
-        return tagsList;
-    }
-
-    public void setTagsList(String tagsList) {
-        this.tagsList = tagsList;
-    }
-
     public ZonedDateTime getPublishedAt() {
         return publishedAt;
     }
@@ -137,5 +136,13 @@ public class VideoMaster {
                 ", statistics=" + statistics.toString() + "\n" +
                 ", thumbnailsList=" + thumbnailsList + "\n" +
                 '}';
+    }
+
+    public String getTags() {
+        return  tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
     }
 }

@@ -17,12 +17,14 @@ public class ActivityTrans {
     private ZonedDateTime publishedAt;
 
     @CreationTimestamp
-    @Column(nullable = false, columnDefinition= "TIMESTAMP WITH TIME ZONE")
+    @Column(nullable = false, updatable = false, columnDefinition= "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime creation;
 
     @UpdateTimestamp
     @Column(nullable = false, columnDefinition= "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime update;
+
+    public ActivityTrans(){};
 
     public ActivityTrans(String videoId, ZonedDateTime publishedAt) {
         this.videoId = videoId;
