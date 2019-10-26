@@ -13,6 +13,6 @@ public class WebController {
     @GetMapping("hello")
     public String sayHello(){
         System.out.println(apiKey);
-        return "Hello!";
+        return "Hey!";
     }
 }
