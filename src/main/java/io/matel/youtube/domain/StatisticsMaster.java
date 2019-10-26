@@ -1,4 +1,4 @@
-package io.matel.youtube;
+package io.matel.youtube.domain;
 
 import javax.persistence.Embeddable;
 import javax.persistence.Entity;

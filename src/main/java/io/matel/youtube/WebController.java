@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.sql.SQLException;
 
 @RestController
 public class WebController {
@@ -17,7 +16,7 @@ public class WebController {
     @GetMapping("hello")
     public String sayHello(){
         try {
-            appController.getVideoById("nABiSKQuMvQ");
+            appController.getVideoDetails("nABiSKQuMvQ");
         }  catch (IOException e) {
             e.printStackTrace();
         }

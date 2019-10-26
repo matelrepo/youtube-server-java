@@ -1,4 +1,4 @@
-package io.matel.youtube;
+package io.matel.youtube.domain;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -8,13 +8,12 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
-import java.util.List;
 
 @Entity
 public class VideoMaster {
 
     public VideoMaster(String videoId, String channelId, String channelTitle, String duration, String videoDescription,
-                       String videoTitle, String tagsList, ZonedDateTime recordingDate, ZonedDateTime publishedAt,
+                       String videoTitle, String tagsList, ZonedDateTime publishedAt,
                        StatisticsMaster statistics, String thumbnailsList) {
         this.videoId = videoId;
         this.channelId = channelId;
@@ -23,7 +22,6 @@ public class VideoMaster {
         this.videoDescription = videoDescription;
         this.videoTitle = videoTitle;
         this.tagsList = tagsList;
-        this.recordingDate = recordingDate;
         this.publishedAt = publishedAt;
         this.statistics = statistics;
         this.thumbnailsList = thumbnailsList;
@@ -40,7 +38,6 @@ public class VideoMaster {
     private String videoTitle;
     private String tagsList;
 
-    private ZonedDateTime recordingDate;
     private ZonedDateTime publishedAt;
 
     @CreationTimestamp
@@ -110,14 +107,6 @@ public class VideoMaster {
         this.tagsList = tagsList;
     }
 
-    public ZonedDateTime getRecordingDate() {
-        return recordingDate;
-    }
-
-    public void setRecordingDate(ZonedDateTime recordingDate) {
-        this.recordingDate = recordingDate;
-    }
-
     public ZonedDateTime getPublishedAt() {
         return publishedAt;
     }
@@ -144,7 +133,6 @@ public class VideoMaster {
                 ", videoDescription='" + videoDescription.substring(0,20) + "... " + "\n" +
                 ", videoTitle='" + videoTitle + "\n" +
                 ", tagsList=" + tagsList + "\n" +
-                ", recordingDate=" + recordingDate + "\n" +
                 ", publishedAt=" + publishedAt + "\n" +
                 ", statistics=" + statistics.toString() + "\n" +
                 ", thumbnailsList=" + thumbnailsList + "\n" +
