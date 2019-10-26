@@ -11,14 +11,18 @@ import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.Video;
 import com.google.api.services.youtube.model.VideoListResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @Component
-public class AppController {
+public class AppController implements CommandLineRunner {
 
     @Value("${api.key1}")
     private String apiKey;
@@ -35,22 +39,32 @@ public class AppController {
                 }
             }).setApplicationName("youtube").build();
 
-            YouTube.Videos.List listVideosRequest = youtube.videos().list("statistics");
+            YouTube.Videos.List listVideosRequest = youtube.videos().list("statistics, contentDetails, snippet, recordingDetails");
             listVideosRequest.setId(id); // add list of video IDs here
-            System.out.println(this.apiKey);
             listVideosRequest.setKey(this.apiKey);
+
+            listVideosRequest.setFields("items(contentDetails(duration), "+
+            "id, recordingDetails(recordingDate), "+
+            "snippet(channelId, channelTitle, description, title, publishedAt, tags, thumbnails), statistics)");
+
+
             VideoListResponse listResponse = listVideosRequest.execute();
 
             Video video = listResponse.getItems().get(0);
 
-            BigInteger viewCount = video.getStatistics().getViewCount();
-            BigInteger Likes = video.getStatistics().getLikeCount();
-            BigInteger DisLikes = video.getStatistics().getDislikeCount();
-            BigInteger Comments = video.getStatistics().getCommentCount();
-            System.out.println("[View Count] " + viewCount);
-            System.out.println("[Likes] " + Likes);
-            System.out.println("[Dislikes] " + DisLikes);
-            System.out.println("[Comments] " + Comments);
+            StatisticsMaster statistics = new StatisticsMaster(video.getStatistics().getCommentCount(),
+                    video.getStatistics().getDislikeCount(), video.getStatistics().getFavoriteCount(),
+                    video.getStatistics().getLikeCount(), video.getStatistics().getViewCount());
+
+            VideoMaster videoMaster = new VideoMaster(video.getId(), video.getSnippet().getChannelId(),
+                    video.getSnippet().getChannelTitle(), video.getContentDetails().getDuration(),
+                    video.getSnippet().getDescription(), video.getSnippet().getTitle(),
+                    null, ZonedDateTime.ofInstant(Instant.ofEpochMilli(video.getRecordingDetails().getRecordingDate().getValue()), ZoneId.of("Asia/Bangkok")),
+                    ZonedDateTime.ofInstant(Instant.ofEpochMilli(video.getSnippet().getPublishedAt().getValue()), ZoneId.of("Asia/Bangkok")), statistics, null);
+
+            System.out.println(videoMaster.toString());
+
+
 
         } catch (GoogleJsonResponseException e) {
             System.err.println("There was a service error: " + e.getDetails().getCode() + " : "
@@ -59,5 +73,10 @@ public class AppController {
             System.err.println("There was an IO error: " + e.getCause() + " : " + e.getMessage());
         }
         return null;
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        getVideoById("nABiSKQuMvQ");
     }
 }
