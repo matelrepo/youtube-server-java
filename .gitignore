@@ -1,4 +1,4 @@
-src/main/resources/credentials.properties
+credentials.properties
 
 HELP.md
 target/
