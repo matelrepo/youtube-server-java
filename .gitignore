@@ -1,9 +1,9 @@
-credentials.properties
+src/main/resources/credentials.properties
 
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**
+#!**/src/main/**
 !**/src/test/**
 
 ### STS ###
