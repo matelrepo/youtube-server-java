@@ -9,8 +9,12 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.opencsv.CSVReader;
+import io.matel.youtube.domain.VideoDetailsMaster;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -20,7 +24,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-@Component
+@Configuration
+@EnableScheduling
 public class DbInit implements CommandLineRunner {
 
     public  final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
@@ -32,17 +37,20 @@ public class DbInit implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        YouTube youtube = new YouTube.Builder(HTTP_TRANSPORT, JSON_FACTORY, new HttpRequestInitializer() {
+            @Override
+            public void initialize(HttpRequest request) throws IOException {
+            }
+        }).setApplicationName("youtube").build();
+        appController.setYouTube(youtube);
+    }
+
+    @Scheduled(fixedDelay = 600000000, initialDelay = 1000)
+    private void updateSubscriptions(){
+        System.out.println("Looking for new videos...");
         try {
-           YouTube youtube = new YouTube.Builder(HTTP_TRANSPORT, JSON_FACTORY, new HttpRequestInitializer() {
-                @Override
-                public void initialize(HttpRequest request) throws IOException {
-                }
-            }).setApplicationName("youtube").build();
-
-           appController.setYouTube(youtube);
-
-           appController.getVideoDetails("Q9MtlmmN4Q0");
-
+//           VideoDetailsMaster video = appController.getVideoDetails("Q9MtlmmN4Q0");
+//           System.out.println(video.toString());
 //            loadCsvChannelsList().forEach(result ->{
 //                try {
 //                    appController.getActivityByChannelId(result.get(0));
@@ -51,12 +59,16 @@ public class DbInit implements CommandLineRunner {
 //                }
 //            });
 
+            appController.getActivityByChannelId("UCFesKMMwxlGXWKxMQmndPYQ");
+
+
         } catch (GoogleJsonResponseException e) {
             System.err.println("There was a service error: " + e.getDetails().getCode() + " : "
                     + e.getDetails().getMessage());
         } catch (IOException e) {
             System.err.println("There was an IO error: " + e.getCause() + " : " + e.getMessage());
         }
+        System.out.println("The system is up to date");
     }
 
     private List<List<String>> loadCsvChannelsList() throws IOException{
@@ -67,6 +79,7 @@ public class DbInit implements CommandLineRunner {
                 records.add(Arrays.asList(values));
             }
         }
-        return records.subList(0,1);
+//        return records.subList(0,5);
+        return records;
     }
 }

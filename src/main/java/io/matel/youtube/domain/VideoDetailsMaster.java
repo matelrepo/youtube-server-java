@@ -23,7 +23,9 @@ public class VideoDetailsMaster {
         this.videoDescription = videoDescription;
         this.videoTitle = videoTitle;
         this.tagsList = tagsList;
-        this.tags = String.join(",", tagsList);
+        if (tags != null)
+            if (tags.length() > 0)
+                this.tags = String.join(",", tagsList);
         this.publishedAt = publishedAt;
         this.statistics = statistics;
         this.thumbnailsList = thumbnailsList;
@@ -43,7 +45,7 @@ public class VideoDetailsMaster {
     private List<String> tagsList;
 
     @Column(columnDefinition= "TEXT")
-    private String tags;
+    private String tags ="";
 
     private ZonedDateTime publishedAt;
 

@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -22,7 +23,8 @@ import java.time.ZonedDateTime;
 @Component
 public class AppController {
 
-    private final int NUM_ITERATIONS_PAGES_HISTO = 3;
+    private final int NUM_DAYS_HISTO = 1;
+    private final ZoneId  zoneId = ZoneId.of("Asia/Bangkok");
 
     @Value("${api.key1}")
     private String apiKey;
@@ -42,9 +44,10 @@ public class AppController {
     @Autowired
     ActivityRepository activityRepository;
 
-    public void getVideoDetails(String videoId) throws IOException {
+    public VideoDetailsMaster getVideoDetails(String videoId) throws IOException {
         if(videoDetailsRepository.existsVideoDetailsMasterByVideoId(videoId)){
             System.out.println("Video details " + videoId + " already acquired");
+            return videoDetailsRepository.findById(videoId).get();
         }else {
             YouTube.Videos.List listVideosRequest = youTube.videos().list("statistics, contentDetails, snippet, recordingDetails");
             listVideosRequest.setId(videoId); // add list of video IDs here
@@ -53,16 +56,10 @@ public class AppController {
             listVideosRequest.setFields("items(contentDetails(duration), " +
                     "id, snippet(channelId, channelTitle, description, title, publishedAt, tags, thumbnails), statistics)");
 
-
             VideoListResponse listResponse = listVideosRequest.execute();
-
             Video video = listResponse.getItems().get(0);
-
-//            System.out.println(video.toPrettyString());
-
             String thumbDetails = youTube.getJsonFactory().toString( video.getSnippet().getThumbnails());
 //            ThumbnailDetails thumb =  youTube.getJsonFactory().fromString(thumbString,ThumbnailDetails.class );
-//            System.out.println(thumb.toString());
 
             StatisticsMaster statistics = new StatisticsMaster(video.getStatistics().getCommentCount(),
                     video.getStatistics().getDislikeCount(), video.getStatistics().getFavoriteCount(),
@@ -72,11 +69,11 @@ public class AppController {
                     video.getSnippet().getChannelTitle(), video.getContentDetails().getDuration(),
                     video.getSnippet().getDescription(), video.getSnippet().getTitle(),
                     video.getSnippet().getTags(),
-                    ZonedDateTime.ofInstant(Instant.ofEpochMilli(video.getSnippet().getPublishedAt().getValue()), ZoneId.of("Asia/Bangkok")),
+                    ZonedDateTime.ofInstant(Instant.ofEpochMilli(video.getSnippet().getPublishedAt().getValue()), zoneId),
                     statistics, thumbDetails);
 
             videoDetailsRepository.save(videoDetailsMaster);
-            System.out.println(videoDetailsMaster.toString());
+            return videoDetailsMaster;
         }
     }
 
@@ -90,37 +87,50 @@ public class AppController {
 
 
         boolean validRequest = true;
-        boolean skipFirstActivityPageForTesting = false;
+//        boolean skipFirstActivityPageForTesting = false;
 
-        for (int i = 0; i < NUM_ITERATIONS_PAGES_HISTO; i++) {
+//        for (int i = 0; i < NUM_ITERATIONS_PAGES_HISTO; i++) {
+//        }
+
+        // Look for old videos within last two days
+        // While video is not older than 2 days
+        ZonedDateTime timeFromYoutube = ZonedDateTime.now(zoneId).minusDays(2);
+        Instant now = Instant.now();
+        ZonedDateTime today = ZonedDateTime.ofInstant(now, zoneId);
+        while(Duration.between(timeFromYoutube, today).toDays()<3) {
+            System.out.println("Mapping " + channelId + " " + timeFromYoutube + " " + today + " " + Duration.between(timeFromYoutube, today).toDays());
             listResponse = listActivitiesRequest.execute();
-            if (validRequest && !skipFirstActivityPageForTesting) {
-                validRequest = goThroughActivities(listResponse);
-                System.out.println("First page results acquired - next token >> " + listResponse.getNextPageToken());
+            System.out.println(listResponse.getItems().get(listResponse.getItems().size()-1).getSnippet().getPublishedAt());
+            timeFromYoutube = ZonedDateTime.ofInstant(Instant
+                    .ofEpochMilli(listResponse.getItems().get(listResponse.getItems().size()-1).getSnippet().getPublishedAt().getValue()), zoneId);
+            System.out.println(timeFromYoutube);
+            if (validRequest) {
+                validRequest = goThroughActivities(listResponse, channelId);
+                System.out.println("Page results acquired - channel " + channelId + " -> next token >> "
+                        + listResponse.getNextPageToken());
+            }else{
+                break;
             }
-            if(skipFirstActivityPageForTesting)
-                listActivitiesRequest.setPageToken(listResponse.getNextPageToken());
-
-            skipFirstActivityPageForTesting = false;
         }
 
     }
 
-    private boolean goThroughActivities(ActivityListResponse listResponse){
+    private boolean goThroughActivities(ActivityListResponse listResponse, String channelId){
 
         for(int j=0; j < listResponse.getItems().size(); j++){
             if(listResponse.getItems().get(j).getSnippet().getType().equals("upload")){
                 ActivityTrans activityTrans = new ActivityTrans(listResponse.getItems().get(j).getContentDetails().getUpload().getVideoId(),
-                        ZonedDateTime.ofInstant(Instant.ofEpochMilli(listResponse.getItems().get(j).getSnippet().getPublishedAt().getValue()), ZoneId.of("Asia/Bangkok")));
+                        ZonedDateTime.ofInstant(Instant.ofEpochMilli(listResponse.getItems().get(j).getSnippet().getPublishedAt().getValue()), zoneId));
 
 
 
                 if(activityRepository.existsActivityTransByVideoId(activityTrans.getVideoId())){
-                        trailingCheckAlreadyExists++;       // bug that two consecutive activities were received but the queue of new videos wasn't over
+                        trailingCheckAlreadyExists++;   // bug that two consecutive activities were received but the queue of new videos wasn't over
                 }else {
                     trailingCheckAlreadyExists = 0;
-                    System.out.println(activityTrans.toString());
+//                    System.out.println(activityTrans.toString());
                     activityRepository.save(activityTrans);
+                    System.out.println(" >>Video " + activityTrans.getVideoId());
                     try {
                         this.getVideoDetails(activityTrans.getVideoId());
                     } catch (IOException e) {
@@ -128,9 +138,9 @@ public class AppController {
                     }
                 }
 
-                if(trailingCheckAlreadyExists>2){
-                    System.out.println("Activity item " + activityTrans.getVideoId() + " already acquired");
-                    System.out.println("Terminating the query");
+                if(trailingCheckAlreadyExists > 2 ){    //threshold not really important as it will loop doing nothing and go out
+                    System.out.println("Channel activity item" + activityTrans.getVideoId() + " already acquired");
+                    System.out.println("Channel " + channelId + " up to date");
                     return false;
                 }
 
