@@ -41,15 +41,15 @@ public class DbInit implements CommandLineRunner {
 
            appController.setYouTube(youtube);
 
-            loadCsvChannelsList().forEach(result ->{
-                try {
-                    appController.getActivityByChannelId(result.get(0));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
+           appController.getVideoDetails("Q9MtlmmN4Q0");
 
-//           appController.getActivityByChannelId("UCVHFbqXqoYvEWM1Ddxl0QDg");
+//            loadCsvChannelsList().forEach(result ->{
+//                try {
+//                    appController.getActivityByChannelId(result.get(0));
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            });
 
         } catch (GoogleJsonResponseException e) {
             System.err.println("There was a service error: " + e.getDetails().getCode() + " : "

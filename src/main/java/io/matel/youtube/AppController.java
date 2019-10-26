@@ -1,9 +1,10 @@
 package io.matel.youtube;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
-import com.google.api.services.youtube.model.ActivityListResponse;
-import com.google.api.services.youtube.model.Video;
-import com.google.api.services.youtube.model.VideoListResponse;
+import com.google.api.services.youtube.model.*;
 import io.matel.youtube.domain.ActivityTrans;
 import io.matel.youtube.domain.StatisticsMaster;
 import io.matel.youtube.domain.VideoDetailsMaster;
@@ -57,6 +58,12 @@ public class AppController {
 
             Video video = listResponse.getItems().get(0);
 
+//            System.out.println(video.toPrettyString());
+
+            String thumbDetails = youTube.getJsonFactory().toString( video.getSnippet().getThumbnails());
+//            ThumbnailDetails thumb =  youTube.getJsonFactory().fromString(thumbString,ThumbnailDetails.class );
+//            System.out.println(thumb.toString());
+
             StatisticsMaster statistics = new StatisticsMaster(video.getStatistics().getCommentCount(),
                     video.getStatistics().getDislikeCount(), video.getStatistics().getFavoriteCount(),
                     video.getStatistics().getLikeCount(), video.getStatistics().getViewCount());
@@ -65,7 +72,8 @@ public class AppController {
                     video.getSnippet().getChannelTitle(), video.getContentDetails().getDuration(),
                     video.getSnippet().getDescription(), video.getSnippet().getTitle(),
                     video.getSnippet().getTags(),
-                    ZonedDateTime.ofInstant(Instant.ofEpochMilli(video.getSnippet().getPublishedAt().getValue()), ZoneId.of("Asia/Bangkok")), statistics, null);
+                    ZonedDateTime.ofInstant(Instant.ofEpochMilli(video.getSnippet().getPublishedAt().getValue()), ZoneId.of("Asia/Bangkok")),
+                    statistics, thumbDetails);
 
             videoDetailsRepository.save(videoDetailsMaster);
             System.out.println(videoDetailsMaster.toString());
@@ -80,12 +88,6 @@ public class AppController {
         listActivitiesRequest.setFields("nextPageToken, items(contentDetails(upload(videoId))," +
                         "snippet(type,publishedAt,title,description,thumbnails(medium(url))))");
 
-
-//            ActivityListResponse listResponse = listActivitiesRequest.execute();
-//            goThroughActivities(listResponse);
-//            System.out.println(channelId);
-//            System.out.println(listResponse.getNextPageToken());
-//        listActivitiesRequest.setPageToken(listResponse.getNextPageToken());
 
         boolean validRequest = true;
         boolean skipFirstActivityPageForTesting = false;

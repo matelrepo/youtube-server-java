@@ -56,6 +56,8 @@ public class VideoDetailsMaster {
     private OffsetDateTime update;
 
     StatisticsMaster statistics;
+
+    @Column(columnDefinition= "TEXT")
     String thumbnailsList;
 
     public String getVideoId() {
@@ -124,7 +126,7 @@ public class VideoDetailsMaster {
 
     @Override
     public String toString() {
-        return "VideoMaster{" +
+        return "VideoMaster{" + "\n" +
                 "videoId='" + videoId + "\n" +
                 ", channelId='" + channelId + "\n" +
                 ", channelTitle='" + channelTitle + "\n" +
