@@ -21,6 +21,6 @@ public class WebController {
         }  catch (IOException e) {
             e.printStackTrace();
         }
-        return "Hey!";
+        return "Bonjour!";
     }
 }
