@@ -9,7 +9,9 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.opencsv.CSVReader;
+import io.matel.youtube.domain.SubscriptionTrans;
 import io.matel.youtube.domain.VideoDetailsMaster;
+import io.matel.youtube.repository.SubscriptionTransRepository;
 import io.matel.youtube.service.MailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -37,6 +39,9 @@ public class DbInit implements CommandLineRunner {
     private AppController appController;
 
     @Autowired
+    private SubscriptionTransRepository subscriptionTransRepository;
+
+    @Autowired
     private MailService mailService;
 
     @Override
@@ -49,23 +54,25 @@ public class DbInit implements CommandLineRunner {
         appController.setYouTube(youtube);
     }
 
-    @Scheduled(fixedDelay = 5000, initialDelay = 1000) //24 hours = 86400000 ms
+    @Scheduled(fixedDelay = 86400000, initialDelay = 1000) //24 hours = 86400000 ms
     private void updateSubscriptions(){
-//        System.out.println("Looking for new videos...");
+        System.out.println("Looking for new videos...");
 //        try {
-////           VideoDetailsMaster video = appController.getVideoDetails("Q9MtlmmN4Q0");
-////           System.out.println(video.toString());
-//            loadCsvChannelsList().forEach(result ->{
-//                try {
-//                    appController.getActivityByChannelId(result.get(0));
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            });
-//
-////            appController.getActivityByChannelId("UCFesKMMwxlGXWKxMQmndPYQ");
-//
-//
+//           VideoDetailsMaster video = appController.getVideoDetails("Q9MtlmmN4Q0");
+//           System.out.println(video.toString());
+//            loadCsvChannelsList().forEach( subscriptionTrans ->{
+            subscriptionTransRepository.findAll().forEach( subscriptionTrans ->{
+
+                try {
+                    appController.getActivityByChannelId(subscriptionTrans.getChannelId());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+
+//            appController.getActivityByChannelId("UCFesKMMwxlGXWKxMQmndPYQ");
+
+
 //        } catch (GoogleJsonResponseException e) {
 //            System.err.println("There was a service error: " + e.getDetails().getCode() + " : "
 //                    + e.getDetails().getMessage());
@@ -77,15 +84,19 @@ public class DbInit implements CommandLineRunner {
         System.out.println("The system is up to date");
     }
 
-    private List<List<String>> loadCsvChannelsList() throws IOException{
-        List<List<String>> records = new ArrayList<List<String>>();
+    private List<SubscriptionTrans> loadCsvChannelsList() throws IOException{
+//        List<List<String>> records = new ArrayList<List<String>>();
+        List<SubscriptionTrans> records = new ArrayList<>();
         try (CSVReader csvReader = new CSVReader(new FileReader("src/main/resources/channels_new.csv"));) {
             String[] values = null;
             while ((values = csvReader.readNext()) != null) {
-                records.add(Arrays.asList(values));
+//                records.add(Arrays.asList(values));
+                records.add(new SubscriptionTrans(values[0], 1));
             }
         }
 //        return records.subList(100,100);
+        subscriptionTransRepository.saveAll(records);
         return records;
     }
 }
+

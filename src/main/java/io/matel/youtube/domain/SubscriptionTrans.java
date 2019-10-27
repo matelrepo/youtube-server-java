@@ -11,6 +11,13 @@ import java.time.OffsetDateTime;
 @Entity
 public class SubscriptionTrans {
 
+    public SubscriptionTrans(){};
+
+    public SubscriptionTrans(String channelId, int userId) {
+        this.channelId = channelId;
+        this.userId = userId;
+    }
+
     @Id
     private String channelId;
     private int userId;
@@ -22,4 +29,38 @@ public class SubscriptionTrans {
     @UpdateTimestamp
     @Column(nullable = false, columnDefinition= "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime update;
+
+
+    public String getChannelId() {
+        return channelId;
+    }
+
+    public void setChannelId(String channelId) {
+        this.channelId = channelId;
+    }
+
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
+    }
+
+    public OffsetDateTime getCreation() {
+        return creation;
+    }
+
+    public void setCreation(OffsetDateTime creation) {
+        this.creation = creation;
+    }
+
+    public OffsetDateTime getUpdate() {
+        return update;
+    }
+
+    public void setUpdate(OffsetDateTime update) {
+        this.update = update;
+    }
+
 }
