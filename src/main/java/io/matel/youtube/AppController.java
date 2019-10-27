@@ -26,7 +26,7 @@ public class AppController {
     private final int NUM_DAYS_HISTO = 1;
     private final ZoneId  zoneId = ZoneId.of("Asia/Bangkok");
 
-    @Value("${api.key1}")
+    @Value("${api.key2}")
     private String apiKey;
 
     private YouTube youTube;

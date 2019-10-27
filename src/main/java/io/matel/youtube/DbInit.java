@@ -10,6 +10,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.opencsv.CSVReader;
 import io.matel.youtube.domain.VideoDetailsMaster;
+import io.matel.youtube.service.MailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
@@ -33,7 +34,10 @@ public class DbInit implements CommandLineRunner {
     public  final JsonFactory JSON_FACTORY = new JacksonFactory();
 
     @Autowired
-    AppController appController;
+    private AppController appController;
+
+    @Autowired
+    private MailService mailService;
 
     @Override
     public void run(String... args) throws Exception {
@@ -45,12 +49,12 @@ public class DbInit implements CommandLineRunner {
         appController.setYouTube(youtube);
     }
 
-    @Scheduled(fixedDelay = 600000000, initialDelay = 1000)
+    @Scheduled(fixedDelay = 5000, initialDelay = 1000) //24 hours = 86400000 ms
     private void updateSubscriptions(){
-        System.out.println("Looking for new videos...");
-        try {
-//           VideoDetailsMaster video = appController.getVideoDetails("Q9MtlmmN4Q0");
-//           System.out.println(video.toString());
+//        System.out.println("Looking for new videos...");
+//        try {
+////           VideoDetailsMaster video = appController.getVideoDetails("Q9MtlmmN4Q0");
+////           System.out.println(video.toString());
 //            loadCsvChannelsList().forEach(result ->{
 //                try {
 //                    appController.getActivityByChannelId(result.get(0));
@@ -58,16 +62,18 @@ public class DbInit implements CommandLineRunner {
 //                    e.printStackTrace();
 //                }
 //            });
+//
+////            appController.getActivityByChannelId("UCFesKMMwxlGXWKxMQmndPYQ");
+//
+//
+//        } catch (GoogleJsonResponseException e) {
+//            System.err.println("There was a service error: " + e.getDetails().getCode() + " : "
+//                    + e.getDetails().getMessage());
+//        } catch (IOException e) {
+//            System.err.println("There was an IO error: " + e.getCause() + " : " + e.getMessage());
+//        }
 
-            appController.getActivityByChannelId("UCFesKMMwxlGXWKxMQmndPYQ");
-
-
-        } catch (GoogleJsonResponseException e) {
-            System.err.println("There was a service error: " + e.getDetails().getCode() + " : "
-                    + e.getDetails().getMessage());
-        } catch (IOException e) {
-            System.err.println("There was an IO error: " + e.getCause() + " : " + e.getMessage());
-        }
+        mailService.sendEmail();
         System.out.println("The system is up to date");
     }
 
@@ -79,7 +85,7 @@ public class DbInit implements CommandLineRunner {
                 records.add(Arrays.asList(values));
             }
         }
-//        return records.subList(0,5);
+//        return records.subList(100,100);
         return records;
     }
 }
