@@ -126,6 +126,22 @@ public class VideoDetailsMaster {
         this.statistics = statistics;
     }
 
+    public List<String> getTagsList() {
+        return tagsList;
+    }
+
+    public void setTagsList(List<String> tagsList) {
+        this.tagsList = tagsList;
+    }
+
+    public String getThumbnailsList() {
+        return thumbnailsList;
+    }
+
+    public void setThumbnailsList(String thumbnailsList) {
+        this.thumbnailsList = thumbnailsList;
+    }
+
     @Override
     public String toString() {
         return "VideoMaster{" + "\n" +

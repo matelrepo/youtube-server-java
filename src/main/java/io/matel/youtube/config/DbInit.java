@@ -1,6 +1,5 @@
-package io.matel.youtube;
+package io.matel.youtube.config;
 
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
@@ -9,22 +8,19 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.opencsv.CSVReader;
+import io.matel.youtube.controller.AppController;
 import io.matel.youtube.domain.SubscriptionTrans;
-import io.matel.youtube.domain.VideoDetailsMaster;
-import io.matel.youtube.repository.SubscriptionTransRepository;
+import io.matel.youtube.repository.SubscriptionRepo;
 import io.matel.youtube.service.MailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -39,7 +35,7 @@ public class DbInit implements CommandLineRunner {
     private AppController appController;
 
     @Autowired
-    private SubscriptionTransRepository subscriptionTransRepository;
+    private SubscriptionRepo subscriptionRepo;
 
     @Autowired
     private MailService mailService;
@@ -54,48 +50,37 @@ public class DbInit implements CommandLineRunner {
         appController.setYouTube(youtube);
     }
 
-    @Scheduled(fixedDelay = 86400000, initialDelay = 1000) //24 hours = 86400000 ms
+    @Scheduled(fixedDelay = 86400010, initialDelay = 1000) //24 hours = 86400000 ms
     private void updateSubscriptions(){
         System.out.println("Looking for new videos...");
-//        try {
-//           VideoDetailsMaster video = appController.getVideoDetails("Q9MtlmmN4Q0");
-//           System.out.println(video.toString());
-//            loadCsvChannelsList().forEach( subscriptionTrans ->{
-            subscriptionTransRepository.findAll().forEach( subscriptionTrans ->{
+        List<SubscriptionTrans> subs = subscriptionRepo.findAll();
+//        subs.subList(0,5).forEach(subscriptionTrans ->{
+        subs.forEach(subscriptionTrans ->{
 
-                try {
+        try {
                     appController.getActivityByChannelId(subscriptionTrans.getChannelId());
+//            appController.getActivityByChannelId("UCGvjUWz3mGV9cssraATuEsw");
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                System.out.println(">>> Channel " + subscriptionTrans.getChannelId() + " up to date <<<");
+                System.out.println("");
             });
-
-//            appController.getActivityByChannelId("UCFesKMMwxlGXWKxMQmndPYQ");
-
-
-//        } catch (GoogleJsonResponseException e) {
-//            System.err.println("There was a service error: " + e.getDetails().getCode() + " : "
-//                    + e.getDetails().getMessage());
-//        } catch (IOException e) {
-//            System.err.println("There was an IO error: " + e.getCause() + " : " + e.getMessage());
-//        }
 
         mailService.sendEmail();
         System.out.println("The system is up to date");
     }
 
     private List<SubscriptionTrans> loadCsvChannelsList() throws IOException{
-//        List<List<String>> records = new ArrayList<List<String>>();
         List<SubscriptionTrans> records = new ArrayList<>();
         try (CSVReader csvReader = new CSVReader(new FileReader("src/main/resources/channels_new.csv"));) {
             String[] values = null;
             while ((values = csvReader.readNext()) != null) {
-//                records.add(Arrays.asList(values));
                 records.add(new SubscriptionTrans(values[0], 1));
             }
         }
-//        return records.subList(100,100);
-        subscriptionTransRepository.saveAll(records);
+        subscriptionRepo.saveAll(records);
         return records;
     }
 }

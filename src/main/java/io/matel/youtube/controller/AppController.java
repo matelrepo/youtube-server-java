@@ -1,4 +1,4 @@
-package io.matel.youtube;
+package io.matel.youtube.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.json.JsonFactory;
@@ -26,7 +26,7 @@ public class AppController {
     private final int NUM_DAYS_HISTO = 1;
     private final ZoneId  zoneId = ZoneId.of("Asia/Bangkok");
 
-    @Value("${api.key2}")
+    @Value("${api.key1}")
     private String apiKey;
 
     private YouTube youTube;
@@ -81,29 +81,23 @@ public class AppController {
         listActivitiesRequest = youTube.activities().list("contentDetails, snippet, id");
         listActivitiesRequest.setChannelId(channelId); // add list of video IDs here
         listActivitiesRequest.setKey(this.apiKey);
-
         listActivitiesRequest.setFields("nextPageToken, items(contentDetails(upload(videoId))," +
                         "snippet(type,publishedAt,title,description,thumbnails(medium(url))))");
 
-
         boolean validRequest = true;
-//        boolean skipFirstActivityPageForTesting = false;
-
-//        for (int i = 0; i < NUM_ITERATIONS_PAGES_HISTO; i++) {
-//        }
-
-        // Look for old videos within last two days
-        // While video is not older than 2 days
         ZonedDateTime timeFromYoutube = ZonedDateTime.now(zoneId).minusDays(2);
         Instant now = Instant.now();
         ZonedDateTime today = ZonedDateTime.ofInstant(now, zoneId);
         while(Duration.between(timeFromYoutube, today).toDays()<3) {
-            System.out.println("Mapping " + channelId + " " + timeFromYoutube + " " + today + " " + Duration.between(timeFromYoutube, today).toDays());
+            System.out.println("Mapping " + channelId + " (" + timeFromYoutube + " " + today + " " + Duration.between(timeFromYoutube, today).toDays() +")");
             listResponse = listActivitiesRequest.execute();
-            System.out.println(listResponse.getItems().get(listResponse.getItems().size()-1).getSnippet().getPublishedAt());
+//            System.out.println("");
+//            System.out.println(listResponse.toPrettyString());
+//            System.out.println("");
+//            System.out.println(listResponse.getItems().get(listResponse.getItems().size()-1).getSnippet().getPublishedAt());
             timeFromYoutube = ZonedDateTime.ofInstant(Instant
                     .ofEpochMilli(listResponse.getItems().get(listResponse.getItems().size()-1).getSnippet().getPublishedAt().getValue()), zoneId);
-            System.out.println(timeFromYoutube);
+//            System.out.println(timeFromYoutube);
             if (validRequest) {
                 validRequest = goThroughActivities(listResponse, channelId);
                 System.out.println("Page results acquired - channel " + channelId + " -> next token >> "
@@ -122,13 +116,10 @@ public class AppController {
                 ActivityTrans activityTrans = new ActivityTrans(listResponse.getItems().get(j).getContentDetails().getUpload().getVideoId(),
                         ZonedDateTime.ofInstant(Instant.ofEpochMilli(listResponse.getItems().get(j).getSnippet().getPublishedAt().getValue()), zoneId));
 
-
-
                 if(activityRepository.existsActivityTransByVideoId(activityTrans.getVideoId())){
                         trailingCheckAlreadyExists++;   // bug that two consecutive activities were received but the queue of new videos wasn't over
                 }else {
                     trailingCheckAlreadyExists = 0;
-//                    System.out.println(activityTrans.toString());
                     activityRepository.save(activityTrans);
                     System.out.println(" >>Video " + activityTrans.getVideoId());
                     try {
@@ -139,8 +130,7 @@ public class AppController {
                 }
 
                 if(trailingCheckAlreadyExists > 2 ){    //threshold not really important as it will loop doing nothing and go out
-                    System.out.println("Channel activity item" + activityTrans.getVideoId() + " already acquired");
-                    System.out.println("Channel " + channelId + " up to date");
+                    System.out.println("Channel activity (" + channelId + ") item " + activityTrans.getVideoId() + " already acquired");
                     return false;
                 }
 
@@ -148,7 +138,11 @@ public class AppController {
         }
 
         listActivitiesRequest.setPageToken(listResponse.getNextPageToken());
-        return true;
+        if(listActivitiesRequest.getPageToken() == null){
+            return false;
+        }else{
+            return true;
+        }
     }
 
 }
