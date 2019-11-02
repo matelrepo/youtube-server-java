@@ -26,7 +26,7 @@ public class AppController {
     private final int NUM_DAYS_HISTO = 1;
     private final ZoneId  zoneId = ZoneId.of("Asia/Bangkok");
 
-    @Value("${api.key1}")
+    @Value("${api.key2}")
     private String apiKey;
 
     private YouTube youTube;
@@ -54,7 +54,7 @@ public class AppController {
             listVideosRequest.setKey(this.apiKey);
 
             listVideosRequest.setFields("items(contentDetails(duration), " +
-                    "id, snippet(channelId, channelTitle, description, title, publishedAt, tags, thumbnails), statistics)");
+                    "id, snippet(channelId, channelTitle, description, title, publishedAt, tags, defaultLanguage, defaultAudioLanguage, thumbnails), statistics)");
 
             VideoListResponse listResponse = listVideosRequest.execute();
             Video video = listResponse.getItems().get(0);
@@ -70,9 +70,14 @@ public class AppController {
                     video.getSnippet().getDescription(), video.getSnippet().getTitle(),
                     video.getSnippet().getTags(),
                     ZonedDateTime.ofInstant(Instant.ofEpochMilli(video.getSnippet().getPublishedAt().getValue()), zoneId),
-                    statistics, thumbDetails);
+                    statistics, thumbDetails, video.getSnippet().getDefaultLanguage(), video.getSnippet().getDefaultAudioLanguage());
 
-            videoDetailsRepository.save(videoDetailsMaster);
+            if(videoDetailsMaster.getDefaultAudioLanguage() == null
+                    || videoDetailsMaster.getDefaultAudioLanguage().contains("en")
+                    || videoDetailsMaster.getDefaultAudioLanguage().equals("fr")
+                    || videoDetailsMaster.getDefaultAudioLanguage().equals("th") ) {
+                videoDetailsRepository.save(videoDetailsMaster);
+            }
             return videoDetailsMaster;
         }
     }

@@ -15,7 +15,7 @@ public class VideoDetailsMaster {
 
     public VideoDetailsMaster(String videoId, String channelId, String channelTitle, String duration, String videoDescription,
                               String videoTitle, List<String> tagsList, ZonedDateTime publishedAt,
-                              StatisticsMaster statistics, String thumbnailsList) {
+                              StatisticsMaster statistics, String thumbnailsList, String defaultLanguage, String defaultAudioLanguage) {
         this.videoId = videoId;
         this.channelId = channelId;
         this.channelTitle = channelTitle;
@@ -29,6 +29,8 @@ public class VideoDetailsMaster {
         this.publishedAt = publishedAt;
         this.statistics = statistics;
         this.thumbnailsList = thumbnailsList;
+        this.defaultLanguage = defaultLanguage;
+        this.defaultAudioLanguage = defaultAudioLanguage;
     }
 
     @Id
@@ -48,6 +50,25 @@ public class VideoDetailsMaster {
     private String tags ="";
 
     private ZonedDateTime publishedAt;
+
+    private String defaultAudioLanguage;
+    private String defaultLanguage;
+
+    public String getDefaultAudioLanguage() {
+        return defaultAudioLanguage;
+    }
+
+    public void setDefaultAudioLanguage(String defaultAudioLanguage) {
+        this.defaultAudioLanguage = defaultAudioLanguage;
+    }
+
+    public String getDefaultLanguage() {
+        return defaultLanguage;
+    }
+
+    public void setDefaultLanguage(String defaultLanguage) {
+        this.defaultLanguage = defaultLanguage;
+    }
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false, columnDefinition= "TIMESTAMP WITH TIME ZONE")
