@@ -23,8 +23,8 @@ public class VideoDetailsMaster {
         this.videoDescription = videoDescription;
         this.videoTitle = videoTitle;
         this.tagsList = tagsList;
-        if (tags != null)
-            if (tags.length() > 0)
+        if (tagsList != null)
+            if (tagsList.size() > 0)
                 this.tags = String.join(",", tagsList);
         this.publishedAt = publishedAt;
         this.statistics = statistics;
@@ -147,10 +147,12 @@ public class VideoDetailsMaster {
         this.statistics = statistics;
     }
 
+    @Transient
     public List<String> getTagsList() {
         return tagsList;
     }
 
+    @Transient
     public void setTagsList(List<String> tagsList) {
         this.tagsList = tagsList;
     }

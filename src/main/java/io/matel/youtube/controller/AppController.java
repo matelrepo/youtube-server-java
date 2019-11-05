@@ -16,6 +16,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class AppController {
@@ -31,6 +33,9 @@ public class AppController {
     private ActivityListResponse listResponse;
     private int trailingCheckAlreadyExists =0;
 
+    private List<String> ignoreList = new ArrayList<>();
+
+
     public void setYouTube(YouTube youTube){
         this.youTube = youTube;
     }
@@ -42,6 +47,7 @@ public class AppController {
     ActivityRepository activityRepository;
 
     public VideoDetailsMaster getVideoDetails(String videoId) throws IOException {
+
         if(videoDetailsRepository.existsVideoDetailsMasterByVideoId(videoId)){
             System.out.println("Video details " + videoId + " already acquired");
             return videoDetailsRepository.findById(videoId).get();
@@ -55,8 +61,10 @@ public class AppController {
 
             VideoListResponse listResponse = listVideosRequest.execute();
             Video video = listResponse.getItems().get(0);
+//            if(video.getSnippet().getChannelId().equals("UC3VydBGBl132baPCLeDspMQ")){
+//            System.out.println("coucou");
+//            }
             String thumbDetails = youTube.getJsonFactory().toString( video.getSnippet().getThumbnails());
-//            ThumbnailDetails thumb =  youTube.getJsonFactory().fromString(thumbString,ThumbnailDetails.class );
 
             StatisticsMaster statistics = new StatisticsMaster(video.getStatistics().getCommentCount(),
                     video.getStatistics().getDislikeCount(), video.getStatistics().getFavoriteCount(),
@@ -73,10 +81,30 @@ public class AppController {
                     || videoDetailsMaster.getDefaultAudioLanguage().contains("en")
                     || videoDetailsMaster.getDefaultAudioLanguage().equals("fr")
                     || videoDetailsMaster.getDefaultAudioLanguage().equals("th") ) {
-                videoDetailsRepository.save(videoDetailsMaster);
+
+                if (checkCanSave(videoDetailsMaster.getChannelId(), videoDetailsMaster.getVideoTitle()))
+                    videoDetailsRepository.save(videoDetailsMaster);
+
             }
             return videoDetailsMaster;
         }
+    }
+
+    private boolean checkCanSave(String channelId, String videoTitle){
+        // for the channel PackT group videos by course
+//
+//        if(channelId.equals("UC3VydBGBl132baPCLeDspMQ") && videoTitle.contains(":")){
+//            for(int i=0; i< ignoreList.size(); i++){
+//                if(videoTitle.charAt(videoTitle.indexOf(":")) == String.valueOf(" ").charAt(0)){
+//                    videoTitle = videoTitle.substring(0, videoTitle.length()-2) + ":";
+//                }
+//                if(videoTitle.substring(0,videoTitle.indexOf(":")).equals(ignoreList.get(i))){
+//                    return false;
+//                }
+//            }
+//            ignoreList.add(videoTitle.substring(0,videoTitle.indexOf(":")));
+//        }
+        return true;
     }
 
     public void getActivityByChannelId(String channelId) throws IOException {
@@ -93,14 +121,9 @@ public class AppController {
         while(Duration.between(timeFromYoutube, today).toDays()<3) {
             System.out.println("Mapping " + channelId + " (" + timeFromYoutube + " " + today + " " + Duration.between(timeFromYoutube, today).toDays() +")");
             listResponse = listActivitiesRequest.execute();
-//            System.out.println("");
-//            System.out.println(listResponse.toPrettyString());
-//            System.out.println("");
-//            System.out.println(listResponse.getItems().get(listResponse.getItems().size()-1).getSnippet().getPublishedAt());
-           try {
+          try {
                timeFromYoutube = ZonedDateTime.ofInstant(Instant
                        .ofEpochMilli(listResponse.getItems().get(listResponse.getItems().size() - 1).getSnippet().getPublishedAt().getValue()), zoneId);
-//            System.out.println(timeFromYoutube);
                if (validRequest) {
                    validRequest = goThroughActivities(listResponse, channelId);
                    System.out.println("Page results acquired - channel " + channelId + " -> next token >> "
