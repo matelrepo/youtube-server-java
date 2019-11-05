@@ -1,8 +1,5 @@
 package io.matel.youtube.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.*;
 import io.matel.youtube.domain.ActivityTrans;
@@ -23,10 +20,10 @@ import java.time.ZonedDateTime;
 @Component
 public class AppController {
 
-    private final int NUM_DAYS_HISTO = 1;
+//    private final int NUM_DAYS_HISTO = 1;
     private final ZoneId  zoneId = ZoneId.of("Asia/Bangkok");
 
-    @Value("${api.key2}")
+    @Value("${api.key1}")
     private String apiKey;
 
     private YouTube youTube;
@@ -100,16 +97,21 @@ public class AppController {
 //            System.out.println(listResponse.toPrettyString());
 //            System.out.println("");
 //            System.out.println(listResponse.getItems().get(listResponse.getItems().size()-1).getSnippet().getPublishedAt());
-            timeFromYoutube = ZonedDateTime.ofInstant(Instant
-                    .ofEpochMilli(listResponse.getItems().get(listResponse.getItems().size()-1).getSnippet().getPublishedAt().getValue()), zoneId);
+           try {
+               timeFromYoutube = ZonedDateTime.ofInstant(Instant
+                       .ofEpochMilli(listResponse.getItems().get(listResponse.getItems().size() - 1).getSnippet().getPublishedAt().getValue()), zoneId);
 //            System.out.println(timeFromYoutube);
-            if (validRequest) {
-                validRequest = goThroughActivities(listResponse, channelId);
-                System.out.println("Page results acquired - channel " + channelId + " -> next token >> "
-                        + listResponse.getNextPageToken());
-            }else{
-                break;
-            }
+               if (validRequest) {
+                   validRequest = goThroughActivities(listResponse, channelId);
+                   System.out.println("Page results acquired - channel " + channelId + " -> next token >> "
+                           + listResponse.getNextPageToken());
+               } else {
+                   break;
+               }
+           }catch(IndexOutOfBoundsException e){
+               System.out.println(">>>> Activities empty for channel " + channelId);
+               break;
+           }
         }
 
     }

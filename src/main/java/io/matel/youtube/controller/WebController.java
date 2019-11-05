@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-//JPA request the top 10 items of the repository
-//JPA JOIN TABLE
-
 @CrossOrigin
 @RestController
 @RequestMapping("api")
@@ -21,9 +18,9 @@ public class WebController {
     @Autowired
     VideoDetailsRepository videoDetailsRepository;
 
-//    @GetMapping("all")
-//    public List<VideoDetailsMaster> getVideos(){
-//        return videoDetailsRepository.findAllOrderByPublishedAtDesc();
-//    }
+    @GetMapping("all")
+    public List<VideoDetailsMaster> getVideos(){
+        return videoDetailsRepository.findAll().subList(0,3);
+    }
 
 }
